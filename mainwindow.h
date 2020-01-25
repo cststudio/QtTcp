@@ -5,18 +5,12 @@
 #include <QMouseEvent>
 #include <QByteArray>
 #include <QDebug>
-#include <QSerialPort>        //提供访问串口的功能
-#include <QSerialPortInfo>    //提供系统中存在的串口的信息
 #include <QTimer>
 #include <QMessageBox>
 #include <QDateTime>
 
-#include <windows.h>
-#include <WinUser.h>
-#include <Dbt.h>
-#include <devguid.h>
-#include <SetupAPI.h>
-#include <InitGuid.h>
+#include <QTcpServer>
+#include <QTcpSocket>
 
 #pragma execution_character_set("utf-8")
 
@@ -48,7 +42,12 @@ public:
     void sendData();
     void sendHexData(QString& tips, uint8_t* ibuf, uint8_t ilen);
 
+    void printDebugInfo(QString str);
     void printDebugInfo(const char* str);
+
+    QTcpServer *m_tcpServer;
+    QList<QTcpSocket*> m_clientList;
+    QTcpSocket *m_tcpSocket;
 
     int m_pressMouse;
     QPoint m_startPos;
@@ -82,6 +81,12 @@ signals:
 private slots:
     void readyRead();
 
+    void svr_newConnect(void);
+    void svr_disconnect(void);
+
+    void cli_connected(void);
+    void cli_disconnected(void);
+    void cli_receiveData(void);
 
     void on_btnOpen_clicked();
 

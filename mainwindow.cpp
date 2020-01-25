@@ -207,9 +207,34 @@ void MainWindow::initWindow()
     /////////////////////////////////////////////////////////////
     QStringList list;
     list.clear();
-    list << "2400" << "4800" << "9600" << "14400" << \
-         "19200" << "38400" << "43000" << "57600" << "76800" << \
-         "115200" << "230400" << "256000" << "460800" << "921600";
+    list << "127.0.0.1";
+    ui->cbLocalIP->addItems(list);
+
+    list.clear();
+    list << "8000";
+    ui->cbLocalPort->addItems(list);
+
+    list.clear();
+    list << "127.0.0.1";
+    ui->cbRemoteIP->addItems(list);
+
+    list.clear();
+    list << "8000";
+    ui->cbRemotePort->addItems(list);
+
+    ui->txtRecv->setPlaceholderText("Receive data here");
+    ui->txtSend->setPlaceholderText("Send data here");
+    ui->txtSend->setPlainText("hello world");
+
+    // client
+    m_tcpSocket = new QTcpSocket();
+    connect(m_tcpSocket, SIGNAL(connected()), this, SLOT(cli_connected())); // 客户端连接
+    connect(m_tcpSocket, SIGNAL(disconnected()), this, SLOT(cli_disconnected())); // 客户端断开连接
+    connect(m_tcpSocket, SIGNAL(readyRead()), this, SLOT(cli_receiveData())); // 客户端接收数据
+
+    // server
+    m_tcpServer = new QTcpServer();
+    connect(m_tcpServer, SIGNAL(newConnection()), this, SLOT(svr_newConnect()));
 }
 
 
@@ -270,6 +295,11 @@ void MainWindow::initStatusBar()
     connect(this, &MainWindow::sig_exit, qApp, &QApplication::quit); // 直接关联到全局的退出槽
 }
 
+void MainWindow::printDebugInfo(QString str)
+{
+    m_stsDebugInfo->setText(str);
+}
+
 void MainWindow::printDebugInfo(const char* str)
 {
     QString tmp = str;
@@ -284,6 +314,11 @@ void MainWindow::timerEvent(QTimerEvent *event)
 
 void MainWindow::sendData()
 {
+    if (!m_tcpSocket->isOpen())
+    {
+        printDebugInfo("not connected");
+        return;
+    }
     QString sendStr = ui->txtSend->toPlainText().toLatin1().toLower();
     QByteArray sendData;
     QString showStr;
@@ -302,6 +337,13 @@ void MainWindow::sendData()
         sendData.append(0x0a);
     }
     //qDebug() << sendData;
+//    char*  ch;
+//    //QByteArray ba = ui->cliText->text().toLatin1(); // must
+//    ch=ba.data();
+
+
+    m_tcpSocket->write(sendData, sendData.size());
+
     m_txCnt += sendData.size();
     m_stsTx->setText("TX: " + QString::number(m_txCnt));
 }
@@ -322,7 +364,8 @@ void MainWindow::sendHexData(QString& tips, uint8_t* ibuf, uint8_t ilen)
 
 void MainWindow::readyRead()
 {
-    QByteArray buffer; //= serial.readAll();
+    QTcpSocket *tcpSocket = static_cast<QTcpSocket *>(QObject::sender());
+    QByteArray buffer = tcpSocket->readAll();
     QString info;
     QString tmpStr;
     QString timeStr = "";
@@ -339,12 +382,6 @@ void MainWindow::readyRead()
     if (m_recvHex == 1)
     {
         info = buffer.toHex(' ').data();
-//        for (int i = 0; i < buffer.size(); i++)
-//        {
-//            tmpStr.sprintf("%02x ", buffer.at(i));
-//            qDebug() << buffer.at(i);
-//            info.append(tmpStr);
-//        }
     }
     else
     {
@@ -372,18 +409,70 @@ void MainWindow::readyRead()
 }
 
 
+void MainWindow::svr_newConnect()
+{
+    printDebugInfo("get new connect");
+    QTcpSocket *tcpSocket = m_tcpServer->nextPendingConnection();//新的客户端发起的连接
+    QHostAddress clientIp = tcpSocket->peerAddress();//客户端的IP
+    quint16 port = tcpSocket->peerPort();//客户端的端口
+    if(m_clientList.contains(tcpSocket))
+    {
+        printDebugInfo(QString("%1:%2 already connected").arg(clientIp.toString()).arg(port));
+    }
+    else
+    {
+        printDebugInfo("new connect");
+        m_clientList.append(tcpSocket);//记录下客户端发起的连接
+        connect(tcpSocket, SIGNAL(disconnected()), this, SLOT(svr_disconnect()));
+        connect(tcpSocket, SIGNAL(readyRead()), this, SLOT(readyRead())); // 数据接收
+
+    }
+}
+
+void MainWindow::svr_disconnect(void)
+{
+    printDebugInfo(tr("disconnect"));
+    QTcpSocket *tcpSocket = static_cast<QTcpSocket *>( QObject::sender() );
+    m_clientList.removeOne(tcpSocket);
+}
+
+/////////////////////////////////////
+void MainWindow::cli_connected()
+{
+    printDebugInfo("connected");
+}
+
+void MainWindow::cli_disconnected()
+{
+    printDebugInfo("disconnect");
+}
+
+void MainWindow::cli_receiveData()
+{
+    QByteArray ba;
+    ba = m_tcpSocket->readAll();
+    printDebugInfo(QString(ba));
+}
+
 void MainWindow::on_btnOpen_clicked()
 {
     if(ui->btnOpen->text()==QString("监听端口"))
     {
+        QString str=ui->cbLocalIP->currentText();
+        uint16_t port=ui->cbLocalPort->currentText().toUShort();
+        m_tcpServer->close();
 
+        m_tcpServer->listen(QHostAddress::Any, port);
+        printDebugInfo(QString("listening on %1").arg(port));
 
         ui->btnOpen->setText(tr("关闭监听"));
         ui->btnOpen->setIcon(QIcon(":images/opened.ico"));
     }
     else
     {
-
+        m_tcpServer->close();
+        uint16_t port=ui->cbLocalPort->currentText().toUShort();
+        printDebugInfo(QString("close port %1").arg(port));
         ui->btnOpen->setText(tr("监听端口"));
         ui->btnOpen->setIcon(QIcon(":images/notopened.ico"));
     }
@@ -486,6 +575,7 @@ void MainWindow::on_ckSendTimer_stateChanged(int arg1)
         {
             killTimer(m_sendTimerId);
             m_sendTimerId = 0;
+            ui->btnSend->setText("发送");
         }
     }
 }
@@ -506,12 +596,29 @@ void MainWindow::on_btnConnect_clicked()
 {
     if(ui->btnConnect->text()==QString("连接"))
     {
+        QHostAddress serverIp;
+        if(!serverIp.setAddress(ui->cbRemoteIP->currentText()))
+        {
+           printDebugInfo("ip error");
+           return;
+        }
+
+        if (m_tcpSocket->isOpen())
+            m_tcpSocket->close();
+        uint16_t port=ui->cbRemotePort->currentText().toUShort();
+        m_tcpSocket->connectToHost(serverIp, port);
+        if (!m_tcpSocket->isOpen())
+        {
+            printDebugInfo("connect failed");
+            return;
+        }
+
         ui->btnConnect->setText(tr("关闭连接"));
         ui->btnConnect->setIcon(QIcon(":images/opened.ico"));
     }
     else
     {
-
+        m_tcpSocket->close();
         ui->btnConnect->setText(tr("连接"));
         ui->btnConnect->setIcon(QIcon(":images/notopened.ico"));
     }

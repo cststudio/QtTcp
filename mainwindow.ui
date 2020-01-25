@@ -40,7 +40,7 @@
     <property name="geometry">
      <rect>
       <x>9</x>
-      <y>129</y>
+      <y>134</y>
       <width>103</width>
       <height>39</height>
      </rect>
@@ -62,7 +62,7 @@
      <string>端口</string>
     </property>
    </widget>
-   <widget class="QComboBox" name="cbPortName">
+   <widget class="QComboBox" name="cbLocalIP">
     <property name="geometry">
      <rect>
       <x>10</x>
@@ -85,7 +85,7 @@
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>391</y>
+      <y>394</y>
       <width>48</width>
       <height>15</height>
      </rect>
@@ -114,7 +114,7 @@
     <property name="geometry">
      <rect>
       <x>64</x>
-      <y>389</y>
+      <y>392</y>
       <width>41</width>
       <height>19</height>
      </rect>
@@ -124,7 +124,7 @@
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>371</y>
+      <y>374</y>
       <width>81</width>
       <height>16</height>
      </rect>
@@ -179,7 +179,7 @@
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>331</y>
+      <y>334</y>
       <width>101</width>
       <height>16</height>
      </rect>
@@ -192,7 +192,7 @@
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>351</y>
+      <y>354</y>
       <width>91</width>
       <height>16</height>
      </rect>
@@ -221,7 +221,7 @@
      </rect>
     </property>
    </widget>
-   <widget class="QComboBox" name="cbPortName_2">
+   <widget class="QComboBox" name="cbLocalPort">
     <property name="geometry">
      <rect>
       <x>11</x>
@@ -244,7 +244,7 @@
     <property name="geometry">
      <rect>
       <x>11</x>
-      <y>204</y>
+      <y>195</y>
       <width>66</width>
       <height>16</height>
      </rect>
@@ -260,7 +260,7 @@
     <property name="geometry">
      <rect>
       <x>11</x>
-      <y>245</y>
+      <y>236</y>
       <width>66</width>
       <height>16</height>
      </rect>
@@ -269,11 +269,11 @@
      <string>端口</string>
     </property>
    </widget>
-   <widget class="QComboBox" name="cbPortName_3">
+   <widget class="QComboBox" name="cbRemoteIP">
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>223</y>
+      <y>214</y>
       <width>100</width>
       <height>20</height>
      </rect>
@@ -288,11 +288,11 @@
      <bool>true</bool>
     </property>
    </widget>
-   <widget class="QComboBox" name="cbPortName_4">
+   <widget class="QComboBox" name="cbRemotePort">
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>263</y>
+      <y>254</y>
       <width>100</width>
       <height>20</height>
      </rect>
@@ -324,7 +324,7 @@
     <property name="geometry">
      <rect>
       <x>10</x>
-      <y>289</y>
+      <y>280</y>
       <width>103</width>
       <height>39</height>
      </rect>
