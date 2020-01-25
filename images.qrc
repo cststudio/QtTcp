@@ -1,0 +1,13 @@
+<RCC>
+    <qresource prefix="/">
+        <file>images/logo.jpg</file>
+        <file>images/notopened.ico</file>
+        <file>images/opened.ico</file>
+        <file>images/unpinned.bmp</file>
+        <file>images/pinned.bmp</file>
+        <file>images/exit.png</file>
+    </qresource>
+    <qresource prefix="/subprefix">
+        <file>images/logo.jpg</file>
+    </qresource>
+</RCC>
