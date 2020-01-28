@@ -102,6 +102,38 @@ bool MainWindow::eventFilter(QObject *watched, QEvent *event)
             return false;
         }
     }
+    else if (watched == m_stsPinned) // 置顶
+    {
+        if(event->type() == QEvent::MouseButtonPress)
+        {
+            static bool isTop = true;
+            Qt::WindowFlags winFlags  = Qt::Dialog;
+            winFlags = winFlags | Qt::WindowMinMaxButtonsHint | Qt::WindowCloseButtonHint;
+            if (isTop)
+            {
+                winFlags |= Qt::WindowStaysOnTopHint;
+                setWindowFlags(winFlags);
+                showNormal();
+                QPixmap pinnedIcon(":/images/pinned.bmp");
+                m_stsPinned->setPixmap(pinnedIcon);
+                isTop = false;
+            }
+            else
+            {
+                winFlags  &= ~Qt::WindowStaysOnTopHint;
+                setWindowFlags(winFlags);
+                showNormal();
+                QPixmap pinnedIcon(":/images/unpinned.bmp");
+                m_stsPinned->setPixmap(pinnedIcon);
+                isTop = true;
+            }
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
     else if (watched == m_stsResetCnt)
     {
         if(event->type() == QEvent::MouseButtonPress)
@@ -191,6 +223,9 @@ void MainWindow::initWindow()
 
     /////////////////////////////////////////////////////////////
 
+    ui->btnClearRecv->setFlat(true);
+    ui->btnClearSend->setFlat(true);
+
     ui->txtRecv->setPlaceholderText("Receive Data here");
     ui->txtSend->setPlaceholderText("Send Data here");
     ui->txtSend->setPlainText("hello world");
@@ -250,6 +285,7 @@ void MainWindow::initStatusBar()
     //ui->statusbar->setStyleSheet(QString("QStatusBar::item{border: 0px}")); // 不显示边框
     ui->statusbar->setSizeGripEnabled(false);//去掉状态栏右下角的三角
 
+    m_stsPinned = new QLabel();
     m_stsDebugInfo = new QLabel();
     m_stsRx = new QLabel();
     m_stsTx = new QLabel();
@@ -258,6 +294,13 @@ void MainWindow::initStatusBar()
     m_stsExit = new QLabel();
 
     // 置顶图标
+    m_stsPinned->installEventFilter(this); // 安装事件过滤，以便获取其单击事件
+    m_stsPinned->setMinimumWidth(20);
+    // 贴图
+    QPixmap pinnedIcon(":/images/unpinned.bmp");
+    m_stsPinned->setPixmap(pinnedIcon);
+    ui->statusbar->addWidget(m_stsPinned);
+
 
     m_stsDebugInfo->setMinimumWidth(this->width()/2);
     ui->statusbar->addWidget(m_stsDebugInfo);
@@ -283,6 +326,7 @@ void MainWindow::initStatusBar()
     m_stsCopyright->setOpenExternalLinks(true);
     ui->statusbar->addPermanentWidget(m_stsCopyright);
 
+
     // 退出图标
     m_stsExit->installEventFilter(this); // 安装事件过滤，以便获取其单击事件
     m_stsExit->setToolTip("Exit App");
@@ -293,6 +337,7 @@ void MainWindow::initStatusBar()
     ui->statusbar->addPermanentWidget(m_stsExit);
 
     connect(this, &MainWindow::sig_exit, qApp, &QApplication::quit); // 直接关联到全局的退出槽
+
 }
 
 void MainWindow::printDebugInfo(QString str)
