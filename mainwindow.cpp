@@ -1,6 +1,7 @@
 ﻿#include "mainwindow.h"
 #include "ui_mainwindow.h"
 
+#include <QNetworkInterface>
 
 void stringTohexString(QString& str, QString& hexStr)
 {
@@ -221,6 +222,9 @@ void MainWindow::initWindow()
     m_rxCnt = 0;
     m_txCnt = 0;
 
+    m_cliConnected = 0;
+    m_svrConnected = 0;
+
     /////////////////////////////////////////////////////////////
 
     ui->btnClearRecv->setFlat(true);
@@ -230,19 +234,35 @@ void MainWindow::initWindow()
     ui->txtSend->setPlaceholderText("Send Data here");
     ui->txtSend->setPlainText("hello world");
 
+    QFont qFont;
+    qFont.setBold(true);
+
+    ui->btnOpen->setFont(qFont);
     ui->btnOpen->setText(tr("监听端口"));
     ui->btnOpen->setIconSize(ui->btnOpen->rect().size());
     ui->btnOpen->setIcon(QIcon(":images/notopened.ico"));
-
+    ui->btnConnect->setFont(qFont);
     ui->btnConnect->setText(tr("连接"));
+    ui->btnSend->setFont(qFont);
+    ui->btnSend->setText(tr("发送"));
     ui->btnConnect->setIconSize(ui->btnOpen->rect().size());
     ui->btnConnect->setIcon(QIcon(":images/notopened.ico"));
 
     ui->txtInterval->setText("1000");
     /////////////////////////////////////////////////////////////
     QStringList list;
-    list.clear();
-    list << "127.0.0.1";
+    QList<QHostAddress> ipAddressesList = QNetworkInterface::allAddresses();
+    foreach (QHostAddress addr, ipAddressesList)
+    {
+        if (addr.toIPv4Address())
+        {
+            //qDebug() << addr.toString();
+            list.append(addr.toString());
+        }
+    }
+
+    //list.clear();
+    //list << "127.0.0.1";
     ui->cbLocalIP->addItems(list);
 
     list.clear();
@@ -262,10 +282,10 @@ void MainWindow::initWindow()
     ui->txtSend->setPlainText("hello world");
 
     // client
-    m_tcpSocket = new QTcpSocket();
-    connect(m_tcpSocket, SIGNAL(connected()), this, SLOT(cli_connected())); // 客户端连接
-    connect(m_tcpSocket, SIGNAL(disconnected()), this, SLOT(cli_disconnected())); // 客户端断开连接
-    connect(m_tcpSocket, SIGNAL(readyRead()), this, SLOT(cli_receiveData())); // 客户端接收数据
+    m_tcpCliSocket = new QTcpSocket();
+    connect(m_tcpCliSocket, SIGNAL(connected()), this, SLOT(cli_connected())); // 客户端连接
+    connect(m_tcpCliSocket, SIGNAL(disconnected()), this, SLOT(cli_disconnected())); // 客户端断开连接
+    connect(m_tcpCliSocket, SIGNAL(readyRead()), this, SLOT(cli_receiveData())); // 客户端接收数据
 
     // server
     m_tcpServer = new QTcpServer();
@@ -276,7 +296,7 @@ void MainWindow::initWindow()
 void MainWindow::initStatusBar()
 {
     // 状态栏分别为：
-    // 置顶图标  注：与退出图标似乎无法同时显示，先舍弃
+    // 置顶图标
     // 提示信息（可多个）
     // RX、TX
     // 版本信息（或版权声明）
@@ -359,11 +379,6 @@ void MainWindow::timerEvent(QTimerEvent *event)
 
 void MainWindow::sendData()
 {
-    if (!m_tcpSocket->isOpen())
-    {
-        printDebugInfo("not connected");
-        return;
-    }
     QString sendStr = ui->txtSend->toPlainText().toLatin1().toLower();
     QByteArray sendData;
     QString showStr;
@@ -386,8 +401,21 @@ void MainWindow::sendData()
 //    //QByteArray ba = ui->cliText->text().toLatin1(); // must
 //    ch=ba.data();
 
+    QTcpSocket* tmpSocket = NULL;
+    if (m_svrConnected && m_cliConnected)
+    {
+        tmpSocket = m_tcpCliSocket;
+    }
+    else if (m_cliConnected)
+    {
+        tmpSocket = m_tcpCliSocket;
+    }
+    else if (m_svrConnected)
+    {
+        tmpSocket = m_clientList.last();
+    }
 
-    m_tcpSocket->write(sendData, sendData.size());
+    tmpSocket->write(sendData, sendData.size());
 
     m_txCnt += sendData.size();
     m_stsTx->setText("TX: " + QString::number(m_txCnt));
@@ -407,10 +435,8 @@ void MainWindow::sendHexData(QString& tips, uint8_t* ibuf, uint8_t ilen)
     //ui->txtSend->appendPlainText(tips + tmp);
 }
 
-void MainWindow::readyRead()
+void MainWindow::showRecvData(QString tips, QByteArray& buffer)
 {
-    QTcpSocket *tcpSocket = static_cast<QTcpSocket *>(QObject::sender());
-    QByteArray buffer = tcpSocket->readAll();
     QString info;
     QString tmpStr;
     QString timeStr = "";
@@ -433,26 +459,24 @@ void MainWindow::readyRead()
         info = QString(buffer);
     }
 
-    ui->txtRecv->appendPlainText(timeStr + info);
+    ui->txtRecv->appendPlainText(timeStr + tips);
+    ui->txtRecv->appendPlainText(info);
     
-    // TODO
-    // 似乎直接用QByteArray无法直接取真正的值
-    // 这里先转为数组，再判断，需要优化
     uint8_t *data = (uint8_t*)buffer.data();
-    uint8_t buf[255] = {0};
-    for (int i = 0; i < buffer.size(); i++)
-    {
-        buf[i] = data[i];
-        //qDebug("%x ", buf[i]);
-    }
     
     // 根据值判断做逻辑处理，可做成函数
-    if (buf[0] == 0xaa && buf[1] == 0x55)
+    if (data[0] == 0xaa && data[1] == 0x55)
     {
 
     }
 }
 
+void MainWindow::readyRead()
+{
+    QTcpSocket *tcpSocket = static_cast<QTcpSocket *>(QObject::sender());
+    QByteArray buffer = tcpSocket->readAll();
+    showRecvData("SERVER> ", buffer);
+}
 
 void MainWindow::svr_newConnect()
 {
@@ -466,7 +490,7 @@ void MainWindow::svr_newConnect()
     }
     else
     {
-        printDebugInfo("new connect");
+        printDebugInfo(QString("new connect from %1:%2").arg(clientIp.toString()).arg(port));
         m_clientList.append(tcpSocket);//记录下客户端发起的连接
         connect(tcpSocket, SIGNAL(disconnected()), this, SLOT(svr_disconnect()));
         connect(tcpSocket, SIGNAL(readyRead()), this, SLOT(readyRead())); // 数据接收
@@ -484,19 +508,24 @@ void MainWindow::svr_disconnect(void)
 /////////////////////////////////////
 void MainWindow::cli_connected()
 {
-    printDebugInfo("connected");
+    printDebugInfo("client connected");
 }
 
 void MainWindow::cli_disconnected()
 {
-    printDebugInfo("disconnect");
+    printDebugInfo("client disconnect");
+    m_cliConnected = 0;
+    if (m_tcpCliSocket->isOpen())
+        m_tcpCliSocket->close();
+    ui->btnConnect->setText(tr("连接"));
+    ui->btnConnect->setIcon(QIcon(":images/notopened.ico"));
 }
 
 void MainWindow::cli_receiveData()
 {
-    QByteArray ba;
-    ba = m_tcpSocket->readAll();
-    printDebugInfo(QString(ba));
+    QByteArray buffer;
+    buffer = m_tcpCliSocket->readAll();
+    showRecvData("CLIENT> ", buffer);
 }
 
 void MainWindow::on_btnOpen_clicked()
@@ -510,11 +539,13 @@ void MainWindow::on_btnOpen_clicked()
         m_tcpServer->listen(QHostAddress::Any, port);
         printDebugInfo(QString("listening on %1").arg(port));
 
+        m_svrConnected = 1;
         ui->btnOpen->setText(tr("关闭监听"));
         ui->btnOpen->setIcon(QIcon(":images/opened.ico"));
     }
     else
     {
+        m_svrConnected = 0;
         m_tcpServer->close();
         uint16_t port=ui->cbLocalPort->currentText().toUShort();
         printDebugInfo(QString("close port %1").arg(port));
@@ -559,6 +590,13 @@ void MainWindow::on_ckTimestamp_stateChanged(int arg1)
 
 void MainWindow::on_btnSend_clicked()
 {
+    //if (!m_tcpCliSocket->isOpen())
+    if (!m_cliConnected && !m_svrConnected)
+    {
+        printDebugInfo("not connected");
+        return;
+    }
+
     if (m_sendTimer)
     {
         if(ui->btnSend->text()==QString("发送"))
@@ -648,22 +686,24 @@ void MainWindow::on_btnConnect_clicked()
            return;
         }
 
-        if (m_tcpSocket->isOpen())
-            m_tcpSocket->close();
+        if (m_tcpCliSocket->isOpen())
+            m_tcpCliSocket->close();
         uint16_t port=ui->cbRemotePort->currentText().toUShort();
-        m_tcpSocket->connectToHost(serverIp, port);
-        if (!m_tcpSocket->isOpen())
+        m_tcpCliSocket->connectToHost(serverIp, port);
+        if (!m_tcpCliSocket->waitForConnected(600))
         {
             printDebugInfo("connect failed");
             return;
         }
 
+        m_cliConnected = 1;
         ui->btnConnect->setText(tr("关闭连接"));
         ui->btnConnect->setIcon(QIcon(":images/opened.ico"));
     }
     else
     {
-        m_tcpSocket->close();
+        m_cliConnected = 0;
+        m_tcpCliSocket->close();
         ui->btnConnect->setText(tr("连接"));
         ui->btnConnect->setIcon(QIcon(":images/notopened.ico"));
     }

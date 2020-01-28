@@ -45,9 +45,12 @@ public:
     void printDebugInfo(QString str);
     void printDebugInfo(const char* str);
 
+    void showRecvData(QString tips, QByteArray& buffer);
+
     QTcpServer *m_tcpServer;
+
     QList<QTcpSocket*> m_clientList;
-    QTcpSocket *m_tcpSocket;
+    QTcpSocket *m_tcpCliSocket;
 
     int m_pressMouse;
     QPoint m_startPos;
@@ -64,6 +67,9 @@ public:
 
     int m_rxCnt;
     int m_txCnt;
+
+    int m_cliConnected;
+    int m_svrConnected;
 
     // 状态栏相关
     QLabel* m_stsPinned;
