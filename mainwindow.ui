@@ -152,7 +152,7 @@
    <widget class="QPushButton" name="btnClearRecv">
     <property name="geometry">
      <rect>
-      <x>477</x>
+      <x>483</x>
       <y>289</y>
       <width>71</width>
       <height>23</height>
@@ -165,7 +165,7 @@
    <widget class="QPushButton" name="btnClearSend">
     <property name="geometry">
      <rect>
-      <x>557</x>
+      <x>563</x>
       <y>288</y>
       <width>72</width>
       <height>23</height>
@@ -207,7 +207,7 @@
       <x>120</x>
       <y>314</y>
       <width>515</width>
-      <height>146</height>
+      <height>148</height>
      </rect>
     </property>
    </widget>

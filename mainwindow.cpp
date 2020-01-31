@@ -459,8 +459,18 @@ void MainWindow::showRecvData(QString tips, QByteArray& buffer)
         info = QString(buffer);
     }
 
-    ui->txtRecv->appendPlainText(timeStr + tips);
-    ui->txtRecv->appendPlainText(info);
+    // 根据类型，使用不同颜色显示
+    if (tips.contains("SERVER"))
+    {
+        info = "<font color=\"blue\">" + info + "</font>";
+    }
+    else
+    {
+        info = "<font color=\"green\">" + info + "</font>";
+    }
+
+    ui->txtRecv->appendHtml("<font color=\"gray\">" + timeStr + tips + "</font>");
+    ui->txtRecv->appendHtml(info);
     
     uint8_t *data = (uint8_t*)buffer.data();
     
