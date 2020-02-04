@@ -447,7 +447,7 @@ void MainWindow::showRecvData(QString tips, QByteArray& buffer)
     if (m_showTimestamp)
     {
         QDateTime dateTime(QDateTime::currentDateTime());
-        timeStr = "[" + dateTime.toString("yyyy-MM-dd HH:mm::ss.zzz") + "] ";
+        timeStr = "[" + dateTime.toString("yyyy-MM-dd HH:mm:ss.zzz") + "] ";
     }
 
     if (m_recvHex == 1)
