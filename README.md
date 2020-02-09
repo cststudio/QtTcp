@@ -1,5 +1,8 @@
 Qt5网络收发工具
 
+运行界面：  
+![gui](https://github.com/latelee/QtTcp/blob/master/images/1.png)
+
 ## 功能
 - [x] TCP客户端、服务端。  
 - [x] 十六进制收、发。  
